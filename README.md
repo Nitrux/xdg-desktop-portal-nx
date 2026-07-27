@@ -1,2 +1,2 @@
-# xdg-desktop-portal-maui
+# xdg-desktop-portal-nx
 An XDG to make Flatpak apps happy in Nitrux.
