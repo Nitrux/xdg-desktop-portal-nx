@@ -1,0 +1,10 @@
+[portal]
+DBusName=org.freedesktop.impl.portal.desktop.nx
+Interfaces=org.freedesktop.impl.portal.FileChooser;org.freedesktop.impl.portal.AppChooser;org.freedesktop.impl.portal.Settings
+UseIn=Hyprland
+
+[preferred]
+org.freedesktop.impl.portal.FileChooser=nx
+org.freedesktop.impl.portal.AppChooser=nx
+org.freedesktop.impl.portal.Settings=nx
+
