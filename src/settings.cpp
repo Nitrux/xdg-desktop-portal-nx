@@ -68,11 +68,16 @@ uint schemeFromString(const QString &value)
 
 QString kdeFontName(const QVariant &value)
 {
+    const auto description = value.toString();
+    if (description.isEmpty()) {
+        return {};
+    }
+
     QFont font;
-    if (font.fromString(value.toString())) {
+    if (font.fromString(description)) {
         return QStringLiteral("%1 %2").arg(font.family()).arg(font.pointSize());
     }
-    return value.toString();
+    return description;
 }
 }
 
@@ -101,7 +106,7 @@ Settings::Settings(QObject &parent)
     refreshWatches();
 }
 
-QVariant Settings::Read(const QString &nameSpace, const QString &key)
+QDBusVariant Settings::Read(const QString &nameSpace, const QString &key)
 {
     const auto namespaceIt = m_values.constFind(nameSpace);
     if (namespaceIt == m_values.cend() || !namespaceIt->contains(key)) {
@@ -109,7 +114,7 @@ QVariant Settings::Read(const QString &nameSpace, const QString &key)
                        QStringLiteral("Unknown setting %1.%2").arg(nameSpace, key));
         return {};
     }
-    return namespaceIt->value(key);
+    return QDBusVariant(namespaceIt->value(key));
 }
 
 PortalSettings Settings::ReadAll(const QStringList &namespaces) const
@@ -135,7 +140,7 @@ void Settings::reload()
         const auto oldNamespace = m_values.value(namespaceIt.key());
         for (auto keyIt = namespaceIt->cbegin(); keyIt != namespaceIt->cend(); ++keyIt) {
             if (!oldNamespace.contains(keyIt.key()) || oldNamespace.value(keyIt.key()) != keyIt.value()) {
-                emit SettingChanged(namespaceIt.key(), keyIt.key(), keyIt.value());
+                emit SettingChanged(namespaceIt.key(), keyIt.key(), QDBusVariant(keyIt.value()));
             }
         }
     }

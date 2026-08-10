@@ -4,6 +4,7 @@
 #include <QDBusAbstractAdaptor>
 #include <QDBusArgument>
 #include <QDBusContext>
+#include <QDBusVariant>
 #include <QFileSystemWatcher>
 #include <QMap>
 #include <QTimer>
@@ -26,11 +27,11 @@ public:
     [[nodiscard]] static constexpr uint version() noexcept { return 1U; }
 
 public slots:
-    [[nodiscard]] QVariant Read(const QString &nameSpace, const QString &key);
+    [[nodiscard]] QDBusVariant Read(const QString &nameSpace, const QString &key);
     [[nodiscard]] PortalSettings ReadAll(const QStringList &namespaces) const;
 
 signals:
-    void SettingChanged(const QString &nameSpace, const QString &key, const QVariant &value);
+    void SettingChanged(const QString &nameSpace, const QString &key, const QDBusVariant &value);
 
 private slots:
     void scheduleReload();
