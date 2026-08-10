@@ -1,4 +1,4 @@
-# xdg-desktop-portal-nx
+# xdg-desktop-portal-nx | [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 A native XDG Desktop Portal backend for Nitrux/Hyprland sessions. It provides MauiKit file and application chooser dialogs and a direct host settings provider for appearance, icon, font, and GTK theme values.
 
