@@ -17,10 +17,11 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus Gui Qml Quick)
+find_package(KF6CoreAddons REQUIRED)
 find_package(MauiKit4 4.0 REQUIRED)
 find_package(MauiKitFileBrowsing4 4.0 REQUIRED)
 
-qt_add_executable(xdg-desktop-portal-nx
+add_executable(xdg-desktop-portal-nx
     src/main.cpp
     src/portalrequest.cpp
     src/portalrequest.hpp
