@@ -9,6 +9,7 @@
 #include <QDBusError>
 #include <QDebug>
 #include <QGuiApplication>
+#include <QSurfaceFormat>
 #include <QQmlEngine>
 
 namespace
@@ -19,6 +20,10 @@ constexpr auto ObjectPath = "/org/freedesktop/portal/desktop";
 
 int main(int argc, char *argv[])
 {
+    QSurfaceFormat format;
+    format.setAlphaBufferSize(8);
+    QSurfaceFormat::setDefaultFormat(format);
+
     QGuiApplication application(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("xdg-desktop-portal-nx"));
     QCoreApplication::setOrganizationName(QStringLiteral("Nitrux"));

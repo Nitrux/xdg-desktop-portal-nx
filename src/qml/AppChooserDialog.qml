@@ -6,7 +6,6 @@ import org.mauikit.controls as Maui
 
 Maui.ApplicationWindow {
     id: root
-    isDialog: true
 
     required property var bridge
     property string dialogTitle: qsTr("Choose an Application")
@@ -24,6 +23,25 @@ Maui.ApplicationWindow {
     minimumHeight: 360
     visible: true
     modality: modalDialog ? Qt.ApplicationModal : Qt.NonModal
+
+    color: "transparent"
+    background: null
+
+    Maui.WindowBlur {
+        view: root
+        geometry: Qt.rect(0, 0, root.width, root.height)
+        windowRadius: Maui.Style.radiusV
+        enabled: true
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: Maui.Theme.backgroundColor
+        opacity: 0.76
+        radius: Maui.Style.radiusV
+        border.color: Qt.rgba(1, 1, 1, 0)
+        border.width: 1
+    }
 
     function rebuild() {
         appModel.clear()
@@ -51,6 +69,7 @@ Maui.ApplicationWindow {
     Maui.Page {
         anchors.fill: parent
         title: root.dialogTitle
+        background: null
 
         headBar.middleContent: Maui.SearchField {
             id: searchField
