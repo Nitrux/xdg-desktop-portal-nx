@@ -6,6 +6,7 @@ import org.mauikit.filebrowsing as FB
 
 Maui.ApplicationWindow {
     id: root
+    isDialog: true
 
     required property var bridge
     property string dialogTitle: qsTr("Choose a File")

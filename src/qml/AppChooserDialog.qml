@@ -6,6 +6,7 @@ import org.mauikit.controls as Maui
 
 Maui.ApplicationWindow {
     id: root
+    isDialog: true
 
     required property var bridge
     property string dialogTitle: qsTr("Choose an Application")
