@@ -18,6 +18,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus Gui Qml Quick)
 find_package(KF6CoreAddons REQUIRED)
+find_package(KF6I18n REQUIRED)
 find_package(MauiKit4 4.0 REQUIRED)
 find_package(MauiKitFileBrowsing4 4.0 REQUIRED)
 
@@ -45,6 +46,7 @@ target_link_libraries(xdg-desktop-portal-nx
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick
+        KF6::I18n
         MauiKit4
         MauiKit4::FileBrowsing)
 

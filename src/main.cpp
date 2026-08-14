@@ -10,7 +10,11 @@
 #include <QDebug>
 #include <QGuiApplication>
 #include <QSurfaceFormat>
+#include <QQmlContext>
 #include <QQmlEngine>
+
+#include <KLocalizedContext>
+#include <KLocalizedString>
 
 namespace
 {
@@ -28,11 +32,13 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(QStringLiteral("xdg-desktop-portal-nx"));
     QCoreApplication::setOrganizationName(QStringLiteral("Nitrux"));
     QCoreApplication::setApplicationVersion(QStringLiteral("1.0.0"));
+    KLocalizedString::setApplicationDomain("xdg-desktop-portal-nx");
     application.setQuitOnLastWindowClosed(false);
 
     MauiApp::instance()->setIconName(QStringLiteral("system-file-manager"));
 
     QQmlEngine engine;
+    engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
     QObject portalObject;
     auto connection = QDBusConnection::sessionBus();
     if (!connection.isConnected()) {
