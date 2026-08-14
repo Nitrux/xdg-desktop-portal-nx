@@ -42,6 +42,7 @@ namespace
 {
 constexpr auto Appearance = "org.freedesktop.appearance";
 constexpr auto GnomeInterface = "org.gnome.desktop.interface";
+constexpr auto GnomeFontconfig = "org.gnome.fontconfig";
 
 QString unquote(QString value)
 {
@@ -79,6 +80,30 @@ QString kdeFontName(const QVariant &value)
     }
     return description;
 }
+
+QString fontHintingFromGtk(QString value)
+{
+    value = value.trimmed().toLower();
+    if (value.startsWith(QStringLiteral("hint"))) {
+        value.remove(0, 4);
+    }
+    if (value == QStringLiteral("none") || value == QStringLiteral("slight")
+        || value == QStringLiteral("medium") || value == QStringLiteral("full")) {
+        return value;
+    }
+    return {};
+}
+
+QString rgbaOrder(QString value)
+{
+    value = value.trimmed().toLower();
+    if (value == QStringLiteral("rgba") || value == QStringLiteral("rgb")
+        || value == QStringLiteral("bgr") || value == QStringLiteral("vrgb")
+        || value == QStringLiteral("vbgr")) {
+        return value;
+    }
+    return {};
+}
 }
 
 Settings::Settings(QObject &parent)
@@ -91,11 +116,25 @@ Settings::Settings(QObject &parent)
     m_configFiles = {
         QDir(config).filePath(QStringLiteral("kdeglobals")),
         QDir(config).filePath(QStringLiteral("gtk-3.0/settings.ini")),
+        QDir(config).filePath(QStringLiteral("gtk-4.0/settings.ini")),
         QDir(config).filePath(QStringLiteral("dconf/user"))};
     m_configDirectories = {
         config,
         QDir(config).filePath(QStringLiteral("gtk-3.0")),
+        QDir(config).filePath(QStringLiteral("gtk-4.0")),
         QDir(config).filePath(QStringLiteral("dconf"))};
+
+    const auto genericCache =
+        QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
+    const auto genericData = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    m_fontconfigFiles = {
+        QDir(config).filePath(QStringLiteral("fontconfig/fonts.conf")),
+        QDir::home().filePath(QStringLiteral(".fonts.conf"))};
+    m_fontconfigDirectories = {
+        QDir(config).filePath(QStringLiteral("fontconfig")),
+        QDir(genericCache).filePath(QStringLiteral("fontconfig")),
+        QDir(genericData).filePath(QStringLiteral("fonts")),
+        QDir::home().filePath(QStringLiteral(".fonts"))};
 
     m_reloadTimer.setSingleShot(true);
     m_reloadTimer.setInterval(150);
@@ -128,13 +167,20 @@ PortalSettings Settings::ReadAll(const QStringList &namespaces) const
     return result;
 }
 
-void Settings::scheduleReload()
+void Settings::scheduleReload(const QString &path)
 {
+    if (m_fontconfigFiles.contains(path) || m_fontconfigDirectories.contains(path)) {
+        m_fontconfigChanged = true;
+    }
     m_reloadTimer.start();
 }
 
 void Settings::reload()
 {
+    if (m_fontconfigChanged) {
+        ++m_fontconfigSerial;
+        m_fontconfigChanged = false;
+    }
     const auto updated = readHostSettings();
     for (auto namespaceIt = updated.cbegin(); namespaceIt != updated.cend(); ++namespaceIt) {
         const auto oldNamespace = m_values.value(namespaceIt.key());
@@ -185,6 +231,9 @@ PortalSettings Settings::readHostSettings() const
     QString iconTheme;
     QString fontName;
     QString gtkTheme;
+    QString fontAntialiasing;
+    QString fontHinting;
+    QString fontRgbaOrder;
     uint colorScheme = 0U;
 
     const QFileInfo kdeFile(m_configFiles.at(0));
@@ -193,7 +242,22 @@ PortalSettings Settings::readHostSettings() const
         kde.beginGroup(QStringLiteral("General"));
         fontName = kdeFontName(kde.value(QStringLiteral("font")));
         const auto kdeScheme = kde.value(QStringLiteral("ColorScheme")).toString();
-        gtkTheme = kde.value(QStringLiteral("widgetStyle")).toString();
+        if (kde.contains(QStringLiteral("XftHintStyle"))) {
+            fontHinting =
+                fontHintingFromGtk(kde.value(QStringLiteral("XftHintStyle")).toString());
+        }
+        if (kde.contains(QStringLiteral("XftSubPixel"))) {
+            fontRgbaOrder = rgbaOrder(kde.value(QStringLiteral("XftSubPixel")).toString());
+        }
+        if (kde.contains(QStringLiteral("XftAntialias"))) {
+            if (!kde.value(QStringLiteral("XftAntialias")).toBool()) {
+                fontAntialiasing = QStringLiteral("none");
+            } else if (!fontRgbaOrder.isEmpty()) {
+                fontAntialiasing = QStringLiteral("rgba");
+            } else {
+                fontAntialiasing = QStringLiteral("grayscale");
+            }
+        }
         kde.endGroup();
         kde.beginGroup(QStringLiteral("Icons"));
         iconTheme = kde.value(QStringLiteral("Theme")).toString();
@@ -210,9 +274,13 @@ PortalSettings Settings::readHostSettings() const
         }
     }
 
-    const QFileInfo gtkFile(m_configFiles.at(1));
-    if (gtkFile.isFile()) {
-        QSettings gtk(gtkFile.filePath(), QSettings::IniFormat);
+    const auto readGtkSettings = [&](const QString &path) {
+        const QFileInfo gtkFile(path);
+        if (!gtkFile.isFile()) {
+            return;
+        }
+
+        QSettings gtk(path, QSettings::IniFormat);
         gtk.beginGroup(QStringLiteral("Settings"));
         if (iconTheme.isEmpty()) {
             iconTheme = gtk.value(QStringLiteral("gtk-icon-theme-name")).toString();
@@ -223,11 +291,32 @@ PortalSettings Settings::readHostSettings() const
         if (gtkTheme.isEmpty()) {
             gtkTheme = gtk.value(QStringLiteral("gtk-theme-name")).toString();
         }
-        if (colorScheme == 0U && gtk.value(QStringLiteral("gtk-application-prefer-dark-theme")).toBool()) {
+        if (fontHinting.isEmpty()) {
+            fontHinting = fontHintingFromGtk(
+                gtk.value(QStringLiteral("gtk-xft-hintstyle")).toString());
+        }
+        if (fontRgbaOrder.isEmpty()) {
+            fontRgbaOrder = rgbaOrder(gtk.value(QStringLiteral("gtk-xft-rgba")).toString());
+        }
+        if (fontAntialiasing.isEmpty()
+            && gtk.contains(QStringLiteral("gtk-xft-antialias"))) {
+            if (!gtk.value(QStringLiteral("gtk-xft-antialias")).toBool()) {
+                fontAntialiasing = QStringLiteral("none");
+            } else if (!fontRgbaOrder.isEmpty()) {
+                fontAntialiasing = QStringLiteral("rgba");
+            } else {
+                fontAntialiasing = QStringLiteral("grayscale");
+            }
+        }
+        if (colorScheme == 0U
+            && gtk.value(QStringLiteral("gtk-application-prefer-dark-theme")).toBool()) {
             colorScheme = 1U;
         }
         gtk.endGroup();
-    }
+    };
+
+    readGtkSettings(m_configFiles.at(1));
+    readGtkSettings(m_configFiles.at(2));
 
     if (colorScheme == 0U) {
         colorScheme = schemeFromString(gsettings(QString::fromLatin1(GnomeInterface),
@@ -242,31 +331,54 @@ PortalSettings Settings::readHostSettings() const
     if (gtkTheme.isEmpty()) {
         gtkTheme = gsettings(QString::fromLatin1(GnomeInterface), QStringLiteral("gtk-theme"));
     }
+    if (colorScheme == 0U) {
+        colorScheme = schemeFromString(gtkTheme);
+    }
+    if (fontAntialiasing.isEmpty()) {
+        fontAntialiasing = gsettings(QString::fromLatin1(GnomeInterface),
+                                     QStringLiteral("font-antialiasing"));
+    }
+    if (fontHinting.isEmpty()) {
+        fontHinting = gsettings(QString::fromLatin1(GnomeInterface),
+                                QStringLiteral("font-hinting"));
+    }
+    if (fontRgbaOrder.isEmpty()) {
+        fontRgbaOrder = gsettings(QString::fromLatin1(GnomeInterface),
+                                  QStringLiteral("font-rgba-order"));
+    }
 
     return {
         {QString::fromLatin1(Appearance),
          {{QStringLiteral("color-scheme"), colorScheme}}},
+        {QString::fromLatin1(GnomeFontconfig),
+         {{QStringLiteral("serial"), m_fontconfigSerial}}},
         {QString::fromLatin1(GnomeInterface),
          {{QStringLiteral("color-scheme"), colorScheme},
+          {QStringLiteral("font-antialiasing"), fontAntialiasing},
+          {QStringLiteral("font-hinting"), fontHinting},
           {QStringLiteral("icon-theme"), iconTheme},
           {QStringLiteral("font-name"), fontName},
+          {QStringLiteral("font-rgba-order"), fontRgbaOrder},
           {QStringLiteral("gtk-theme"), gtkTheme}}}};
 }
 
 void Settings::refreshWatches()
 {
     const auto watchedFiles = m_watcher.files();
-    for (const auto &file : m_configFiles) {
+    auto files = m_configFiles;
+    files.append(m_fontconfigFiles);
+    for (const auto &file : files) {
         if (QFileInfo::exists(file) && !watchedFiles.contains(file)) {
             m_watcher.addPath(file);
         }
     }
 
     const auto watchedDirectories = m_watcher.directories();
-    for (const auto &directory : m_configDirectories) {
+    auto directories = m_configDirectories;
+    directories.append(m_fontconfigDirectories);
+    for (const auto &directory : directories) {
         if (QFileInfo(directory).isDir() && !watchedDirectories.contains(directory)) {
             m_watcher.addPath(directory);
         }
     }
 }
-

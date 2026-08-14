@@ -34,7 +34,7 @@ signals:
     void SettingChanged(const QString &nameSpace, const QString &key, const QDBusVariant &value);
 
 private slots:
-    void scheduleReload();
+    void scheduleReload(const QString &path);
     void reload();
 
 private:
@@ -49,5 +49,8 @@ private:
     QTimer m_reloadTimer;
     QStringList m_configFiles;
     QStringList m_configDirectories;
+    QStringList m_fontconfigFiles;
+    QStringList m_fontconfigDirectories;
+    int m_fontconfigSerial = 0;
+    bool m_fontconfigChanged = false;
 };
-
