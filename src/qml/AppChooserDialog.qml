@@ -21,7 +21,7 @@ Maui.ApplicationWindow {
     height: 560
     minimumWidth: 440
     minimumHeight: 360
-    visible: true
+    visible: false
     modality: modalDialog ? Qt.ApplicationModal : Qt.NonModal
 
     color: "transparent"
@@ -151,6 +151,9 @@ Maui.ApplicationWindow {
                 break
             }
         }
+        Qt.callLater(function() {
+            root.visible = true
+        })
     }
     onClosing: (close) => {
         if (!completed) {

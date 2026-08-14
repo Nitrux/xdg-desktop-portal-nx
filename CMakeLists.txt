@@ -37,6 +37,7 @@ qt_add_resources(xdg-desktop-portal-nx nx_qml
     PREFIX "/nx/qml"
     FILES
         src/qml/FileChooserDialog.qml
+        src/qml/PlacesSideBar.qml
         src/qml/AppChooserDialog.qml)
 
 target_link_libraries(xdg-desktop-portal-nx

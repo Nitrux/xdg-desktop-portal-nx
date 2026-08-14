@@ -144,22 +144,6 @@ void AppChooser::ChooseApplication(const QDBusObjectPath &handle,
         {QStringLiteral("applications"), applications(choices)},
         {QStringLiteral("lastChoice"), options.value(QStringLiteral("last_choice")).toString()}};
 
-    QQmlComponent component(&m_engine, QUrl(QStringLiteral("qrc:/nx/qml/src/qml/AppChooserDialog.qml")));
-    if (component.status() != QQmlComponent::Ready) {
-        m_connection.send(message.createReply(
-            {Failed, QVariantMap{{QStringLiteral("error"), component.errorString()}}}));
-        return;
-    }
-
-    auto created = std::unique_ptr<QObject>(component.createWithInitialProperties(properties));
-    if (!created) {
-        m_connection.send(message.createReply(
-            {Failed, QVariantMap{{QStringLiteral("error"), component.errorString()}}}));
-        return;
-    }
-    created->setParent(pending->request.data());
-    pending->dialog = created.get();
-    created.release();
     m_pending.insert(path, pending);
 
     connect(pending->request.data(), &PortalRequest::accepted, this,
@@ -179,6 +163,25 @@ void AppChooser::ChooseApplication(const QDBusObjectPath &handle,
                     finish(path, Cancelled, {});
                 });
             });
+
+    QQmlComponent component(&m_engine, QUrl(QStringLiteral("qrc:/nx/qml/src/qml/AppChooserDialog.qml")));
+    if (component.status() != QQmlComponent::Ready) {
+        m_pending.remove(path);
+        m_connection.send(message.createReply(
+            {Failed, QVariantMap{{QStringLiteral("error"), component.errorString()}}}));
+        return;
+    }
+
+    auto created = std::unique_ptr<QObject>(component.createWithInitialProperties(properties));
+    if (!created) {
+        m_pending.remove(path);
+        m_connection.send(message.createReply(
+            {Failed, QVariantMap{{QStringLiteral("error"), component.errorString()}}}));
+        return;
+    }
+    created->setParent(pending->request.data());
+    pending->dialog = created.get();
+    created.release();
 }
 
 void AppChooser::UpdateChoices(const QDBusObjectPath &handle, const QStringList &choices)

@@ -24,7 +24,7 @@ Maui.ApplicationWindow {
     height: 560
     minimumWidth: 520
     minimumHeight: 360
-    visible: true
+    visible: false
     modality: modalDialog ? Qt.ApplicationModal : Qt.NonModal
 
     color: "transparent"
@@ -54,6 +54,14 @@ Maui.ApplicationWindow {
         filling: true
         singleSelection: !root.multiple
         suggestedFileName: root.suggestedName
+
+        sidebarComponent: PlacesSideBar
+        {
+            anchors.fill: parent
+            hiddenPaths: chooser.hiddenSidebarPaths
+            currentPath: chooser.browser.currentPath
+            onPlaceClicked: (path) => chooser.browser.openFolder(path)
+        }
 
         onFinished: (urls) => {
             root.completed = true
@@ -94,7 +102,10 @@ Maui.ApplicationWindow {
                 chooser.actions[1].text = root.saveMode ? qsTr("Save") : qsTr("Open")
             }
         }
-        chooser.open()
+        Qt.callLater(function() {
+            root.visible = true
+            chooser.open()
+        })
     }
 
     onClosing: (close) => {
