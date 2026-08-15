@@ -44,7 +44,7 @@ import org.mauikit.filebrowsing as FB
 Maui.ListBrowser
 {
     id: control
-    
+
     /**
      * @brief The model list of the places.
      * @property PlacesList PlacesListBrowser::list
@@ -176,15 +176,10 @@ Maui.ListBrowser
     
     section.property: "type"
     section.criteria: ViewSection.FullString
-    section.delegate: Maui.SectionHeader
+    section.delegate: Maui.LabelDelegate
     {
         id: delegate
-        text1: section
-        label1.font.weight: Font.Bold
-        label1.font.pixelSize: 14
-        label1.opacity: 1.0
-        label2.visible: false
-        isSection: true
+        text: section
         width: parent.width
         height: Maui.Style.toolBarHeightAlt
     }
