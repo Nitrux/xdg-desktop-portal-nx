@@ -68,52 +68,37 @@ Maui.ApplicationWindow {
 
     Maui.Page {
         anchors.fill: parent
-        title: root.dialogTitle
         background: null
+        headerMargins: Maui.Style.contentMargins
+        headBar.visible: true
+        headBar.forceCenterMiddleContent: false
 
         headBar.middleContent: Maui.SearchField {
             id: searchField
             Layout.fillWidth: true
-            placeholderText: qsTr("Search applications…")
+            Layout.minimumWidth: 100
+            placeholderText: qsTr("Choose an application")
             onTextChanged: root.rebuild()
-        }
-
-        footer: Maui.ToolBar {
-            position: ToolBar.Footer
-            background: null
-
-            rightContent: [
-                Button {
-                    text: qsTr("Cancel")
-                    onClicked: {
-                        root.completed = true
-                        root.bridge.reject()
-                        root.visible = false
-                    }
-                },
-                Button {
-                    text: qsTr("Open")
-                    enabled: root.selectedId.length > 0
-                    highlighted: true
-                    onClicked: root.acceptSelection()
-                }
-            ]
         }
 
         ColumnLayout {
             anchors.fill: parent
             spacing: Maui.Style.space.medium
 
-            Label {
+            Maui.SectionItem {
                 Layout.fillWidth: true
-                Layout.margins: Maui.Style.space.medium
+                Layout.leftMargin: Maui.Style.contentMargins
+                Layout.rightMargin: Maui.Style.contentMargins
+                Layout.topMargin: Maui.Style.space.small
                 visible: root.subject.length > 0
-                text: qsTr("Open %1 with:").arg(root.subject)
-                elide: Text.ElideMiddle
+                flat: false
+                label1.text: qsTr("Open %1 with:").arg(root.subject)
+                label1.elide: Text.ElideMiddle
             }
 
             Maui.ListBrowser {
                 id: appList
+                clip: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 model: appModel
@@ -130,6 +115,41 @@ Maui.ApplicationWindow {
                         root.selectedId = model.desktopId
                         root.acceptSelection()
                     }
+                }
+            }
+
+            GridLayout {
+                id: actionBar
+                Layout.fillWidth: true
+                Layout.leftMargin: Maui.Style.contentMargins
+                Layout.rightMargin: Maui.Style.contentMargins
+                Layout.bottomMargin: Maui.Style.contentMargins
+                rows: 1
+                columns: 2
+                rowSpacing: Maui.Style.space.small
+                columnSpacing: Maui.Style.space.small
+
+                readonly property real buttonWidth: Math.max(0,
+                    (width - columnSpacing) / columns)
+
+                Button {
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: actionBar.buttonWidth
+                    text: qsTr("Cancel")
+                    onClicked: {
+                        root.completed = true
+                        root.bridge.reject()
+                        root.visible = false
+                    }
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: actionBar.buttonWidth
+                    text: qsTr("Open")
+                    enabled: root.selectedId.length > 0
+                    Maui.Controls.status: Maui.Controls.Positive
+                    onClicked: root.acceptSelection()
                 }
             }
         }
