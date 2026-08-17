@@ -361,7 +361,6 @@ void FileChooser::showDialog(const QString &path,
                 qWarning() << "FileChooser could not set persistent dialog property"
                            << it.key() << "for" << path;
         }
-
         qInfo() << "FileChooser presenting persistent QML window" << path << m_dialog.data();
         if (!QMetaObject::invokeMethod(m_dialog, "present")) {
             finish(path, Failed,

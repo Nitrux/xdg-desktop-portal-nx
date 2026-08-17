@@ -58,7 +58,7 @@ Maui.ApplicationWindow {
         sidebarComponent: PlacesSideBar
         {
             anchors.fill: parent
-            hiddenPaths: chooser.hiddenSidebarPaths
+            hiddenPaths: chooser.hiddenSidebarPaths.filter(path => String(path) !== "file:///")
             currentPath: chooser.browser.currentPath
             onPlaceClicked: (path) => chooser.browser.openFolder(path)
         }

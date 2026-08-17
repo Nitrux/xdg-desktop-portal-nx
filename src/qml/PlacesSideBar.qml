@@ -96,13 +96,13 @@ Maui.ListBrowser
     function isDeviceSection(type)
     {
         const value = String(type)
-        return isStorageSection(value) || value === i18n("Removable")
+        return isStorageSection(value) || value === i18nd("mauikitfilebrowsing", "Removable")
     }
 
     function isStorageSection(type)
     {
         const value = String(type)
-        if (value === i18n("Drives") || value === i18n("Storage"))
+        if (value === i18nd("mauikitfilebrowsing", "Drives") || value === i18n("Storage"))
             return true
 
         if (!placesList)
@@ -135,35 +135,20 @@ Maui.ListBrowser
             return "folder-red"
         if ((value.startsWith("/") || value.startsWith("file:///")) && text.startsWith("/"))
             return "folder"
-        return iconName
-    }
-
-    function sidebarIcon(path, iconName, label, type, isDeviceEntry)
-    {
-        const resolved = placeIcon(path, iconName, label, type, isDeviceEntry)
-        return resolved === "folder-red" ? resolved : resolved + "-symbolic"
-    }
-
-    function usesSymbolicIcon(path, iconName, label, type, isDeviceEntry)
-    {
-        return placeIcon(path, iconName, label, type, isDeviceEntry) !== "folder-red"
+        return iconName === undefined || iconName === null ? "" : String(iconName)
     }
 
     function isExternalDeviceSection(type)
     {
-        return String(type) === i18n("Removable")
+        return String(type) === i18nd("mauikitfilebrowsing", "Removable")
     }
 
-    function shouldShowPlace(index, type, path)
+    function shouldShowPlace(type, path)
     {
         if (!isStorageSection(type))
             return true
 
-        const value = String(path)
-        if (isRootPath(value))
-            return true
-
-        return placesList.isDevice(index)
+        return isRootPath(path)
     }
 
     function sectionLabel(type)
@@ -277,9 +262,8 @@ Maui.ListBrowser
                     flat: false
                     visible: !hiddenPlace
                     isCurrentItem: control.currentPath === model.path
-                    iconSource: control.sidebarIcon(model.path, model.icon, model.label, model.type, false)
+                    iconSource: control.placeIcon(model.path, model.icon, model.label, model.type, false)
                     iconSizeHint: Maui.Style.iconSize
-                    template.isMask: true
                     label1.text: model.label
                     labelsVisible: false
                     tooltipText: model.label
@@ -291,14 +275,14 @@ Maui.ListBrowser
 
     delegate: Maui.ListDelegate
     {
-        readonly property bool hiddenPlace: control.isPathHidden(model.path) || !control.shouldShowPlace(index, model.type, model.path)
+        readonly property bool hiddenPlace: control.isPathHidden(model.path) || !control.shouldShowPlace(model.type, model.path)
         width: ListView.view.width
         height: hiddenPlace ? 0 : implicitHeight
         iconSize: control.iconSize
         labelVisible: true
         iconVisible: true
         label: control.placeLabel(model.path, model.label, model.type)
-        iconName: control.sidebarIcon(model.path, model.icon, model.label, model.type, placesList.isDevice(index))
+        iconName: control.placeIcon(model.path, model.icon, model.label, model.type, placesList.isDevice(index))
         visible: !hiddenPlace
         enabled: !hiddenPlace
         

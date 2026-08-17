@@ -240,7 +240,6 @@ void AppChooser::showDialog(const QString &path,
                 qWarning() << "AppChooser could not set persistent dialog property"
                            << it.key() << "for" << path;
         }
-
         qInfo() << "AppChooser presenting persistent QML window" << path << m_dialog.data();
         if (!QMetaObject::invokeMethod(m_dialog, "present")) {
             finish(path, Failed,
