@@ -6,5 +6,5 @@
 /.project
 *.db
 *.qmlc
-*build/
-scripts/install-host.sh
+/build
+/scripts/test-local.sh

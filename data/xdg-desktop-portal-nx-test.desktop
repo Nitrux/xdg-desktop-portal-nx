@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Nitrux Portal Test
+Exec=xdg-desktop-portal-nx-test %u
+Terminal=false
+NoDisplay=true
+MimeType=x-scheme-handler/nx-portal-test;

@@ -16,6 +16,9 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+option(NX_PORTAL_ENABLE_DEBUG_OUTPUT
+    "Build the portal backend with debug and informational logging" OFF)
+
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus Gui Qml Quick)
 find_package(KF6CoreAddons REQUIRED)
 find_package(KF6I18n REQUIRED)
@@ -30,6 +33,8 @@ add_executable(xdg-desktop-portal-nx
     src/filechooser.hpp
     src/appchooser.cpp
     src/appchooser.hpp
+    src/openuri.cpp
+    src/openuri.hpp
     src/settings.cpp
     src/settings.hpp)
 
@@ -51,11 +56,33 @@ target_link_libraries(xdg-desktop-portal-nx
         MauiKit4
         MauiKit4::FileBrowsing)
 
+add_executable(xdg-desktop-portal-nx-test tests/main.cpp)
+
+qt_add_resources(xdg-desktop-portal-nx-test nx_test_qml
+    PREFIX "/nx/test"
+    FILES tests/TestWindow.qml)
+
+target_link_libraries(xdg-desktop-portal-nx-test
+    PRIVATE
+        Qt6::Core
+        Qt6::DBus
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Quick
+        KF6::I18n
+        MauiKit4)
+
 target_compile_definitions(xdg-desktop-portal-nx
     PRIVATE
         QT_NO_CAST_FROM_ASCII
         QT_NO_CAST_TO_ASCII
         QT_NO_URL_CAST_FROM_STRING)
+
+if(NOT NX_PORTAL_ENABLE_DEBUG_OUTPUT)
+    target_compile_definitions(xdg-desktop-portal-nx PRIVATE
+        QT_NO_DEBUG_OUTPUT
+        QT_NO_INFO_OUTPUT)
+endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(xdg-desktop-portal-nx PRIVATE
@@ -76,7 +103,6 @@ install(FILES data/org.freedesktop.impl.portal.desktop.nx.service
 install(FILES data/portals.conf
     DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/xdg-desktop-portal")
 
-
 set(CPACK_PACKAGE_NAME "xdg-desktop-portal-nx")
 set(CPACK_DEBIAN_PACKAGE_NAME "xdg-desktop-portal-nx")
 set(CPACK_PACKAGE_VENDOR "Nitrux Latinoamericana S.C.")
@@ -87,4 +113,10 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "xdg-desktop-portal, xdg-desktop-portal-hyprland (>= 1.3.12), mauikit (>= 4.0.4), mauikit-filebrowsing (>= 4.0.4), qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qt6-wayland")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" @ONLY)
+
+add_custom_target(uninstall COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+
+
 include(CPack)

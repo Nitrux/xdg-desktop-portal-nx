@@ -59,7 +59,7 @@ Maui.ApplicationWindow {
             return
         completed = true
         bridge.accept(selectedId)
-        close()
+        visible = false
     }
 
     ListModel {
@@ -80,6 +80,7 @@ Maui.ApplicationWindow {
 
         footer: Maui.ToolBar {
             position: ToolBar.Footer
+            background: null
 
             rightContent: [
                 Button {
@@ -87,7 +88,7 @@ Maui.ApplicationWindow {
                     onClicked: {
                         root.completed = true
                         root.bridge.reject()
-                        root.close()
+                        root.visible = false
                     }
                 },
                 Button {
@@ -138,12 +139,12 @@ Maui.ApplicationWindow {
         target: root.bridge
         function onCloseUiRequested() {
             root.completed = true
-            root.close()
+            root.visible = false
         }
     }
 
-    onApplicationsChanged: rebuild()
-    Component.onCompleted: {
+    function selectLastChoice() {
+        selectedId = ""
         rebuild()
         for (let i = 0; i < applications.length; ++i) {
             if (applications[i].desktopId === lastChoice) {
@@ -151,15 +152,27 @@ Maui.ApplicationWindow {
                 break
             }
         }
-        Qt.callLater(function() {
-            root.visible = true
-        })
     }
+
+    function present() {
+        completed = false
+        searchField.text = ""
+        selectLastChoice()
+        visible = true
+    }
+
+    function dismiss() {
+        completed = true
+        visible = false
+    }
+
+    onApplicationsChanged: rebuild()
     onClosing: (close) => {
         if (!completed) {
             completed = true
-            bridge.reject()
+            if (bridge)
+                bridge.reject()
         }
+        visible = false
     }
 }
-

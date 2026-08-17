@@ -65,15 +65,16 @@ Maui.ApplicationWindow {
 
         onFinished: (urls) => {
             root.completed = true
-            root.bridge.accept(urls)
-            root.close()
+            if (root.bridge)
+                root.bridge.accept(urls)
         }
         onClosed: {
             if (!root.completed) {
                 root.completed = true
-                root.bridge.reject()
-                root.close()
+                if (root.bridge)
+                    root.bridge.reject()
             }
+            root.visible = false
         }
     }
 
@@ -82,37 +83,50 @@ Maui.ApplicationWindow {
         function onCloseUiRequested() {
             root.completed = true
             chooser.close()
-            root.close()
+            root.visible = false
         }
     }
 
-    Component.onCompleted: {
+    function updateActions() {
+        if (chooser.actions.length <= 1)
+            return
+
+        if (chooser.actions[0].text.length === 0)
+            chooser.actions[0].text = qsTr("Cancel")
+
+        chooser.actions[1].text = root.acceptLabel.length > 0
+            ? root.acceptLabel.replace("_", "&")
+            : root.saveMode ? qsTr("Save") : qsTr("Open")
+    }
+
+    function present() {
+        root.completed = false
         chooser.currentPath = root.initialFolder
         chooser.browser.currentFMList.onlyDirs = root.directoryMode
         chooser.browser.currentFMList.filters = root.nameFilters
-        if (chooser.actions.length > 1) {
-            // MauiKit's catalog can be unavailable in a minimal portal install.
-            // Keep the buttons usable instead of leaving their labels empty.
-            if (chooser.actions[0].text.length === 0)
-                chooser.actions[0].text = qsTr("Cancel")
-
-            if (root.acceptLabel.length > 0) {
-                chooser.actions[1].text = root.acceptLabel.replace("_", "&")
-            } else if (chooser.actions[1].text.length === 0) {
-                chooser.actions[1].text = root.saveMode ? qsTr("Save") : qsTr("Open")
-            }
-        }
+        chooser.textField.text = root.suggestedName
+        root.updateActions()
+        root.visible = true
         Qt.callLater(function() {
-            root.visible = true
-            chooser.open()
+            if (!root.completed)
+                chooser.open()
         })
     }
 
+    function dismiss() {
+        root.completed = true
+        if (chooser.opened)
+            chooser.close()
+        root.visible = false
+    }
     onClosing: (close) => {
         if (!completed) {
             completed = true
-            bridge.reject()
+            chooser.close()
+            if (bridge)
+                bridge.reject()
         }
+        root.visible = false
     }
 }
 

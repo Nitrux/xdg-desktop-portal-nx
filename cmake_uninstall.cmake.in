@@ -1,0 +1,20 @@
+if (NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
+    message(FATAL_ERROR "Cannot find install manifest: @CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
+endif()
+
+file(READ "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt" installed_files)
+string(REGEX REPLACE "\\n" ";" installed_files "${installed_files}")
+
+foreach (file ${installed_files})
+    if (EXISTS "${file}" OR IS_SYMLINK "${file}")
+        message(STATUS "Removing ${file}")
+        execute_process(
+            COMMAND "@CMAKE_COMMAND@" -E rm -f "${file}"
+            OUTPUT_QUIET
+            ERROR_VARIABLE remove_error
+            RESULT_VARIABLE remove_result)
+        if (remove_result)
+            message(FATAL_ERROR "Failed to remove ${file}: ${remove_error}")
+        endif()
+    endif()
+endforeach()

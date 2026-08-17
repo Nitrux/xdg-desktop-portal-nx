@@ -5,6 +5,8 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
+#include <QDebug>
+#include <QMetaObject>
 #include <QPointer>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -27,15 +29,26 @@ constexpr uint Failed = 2U;
 QString desktopId(const QString &applicationsDirectory, const QString &file)
 {
     auto relative = QDir(applicationsDirectory).relativeFilePath(file);
-    return relative.replace(QLatin1Char('/'), QLatin1Char('-'));
+    relative.replace(QLatin1Char('/'), QLatin1Char('-'));
+    if (relative.endsWith(QStringLiteral(".desktop")))
+        relative.chop(8);
+    return relative;
+}
+
+QString canonicalAppId(QString id)
+{
+    id = id.trimmed();
+    if (id.endsWith(QStringLiteral(".desktop")))
+        id.chop(8);
+    return id;
 }
 }
 
 struct AppChooser::Pending
 {
     QSharedPointer<PortalRequest> request;
-    QPointer<QObject> dialog;
     QDBusMessage call;
+    QVariantMap properties;
 };
 
 AppChooser::AppChooser(QObject &parent, QQmlEngine &engine, QDBusConnection connection)
@@ -50,6 +63,12 @@ QVariantList AppChooser::applications(const QStringList &choices)
 {
     QVariantList result;
     QSet<QString> found;
+    QStringList appIds;
+    for (const auto &choice : choices) {
+        const auto id = canonicalAppId(choice);
+        if (!id.isEmpty() && !appIds.contains(id))
+            appIds.append(id);
+    }
     const auto locations = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
 
     for (const auto &location : locations) {
@@ -61,7 +80,7 @@ QVariantList AppChooser::applications(const QStringList &choices)
         while (iterator.hasNext()) {
             const auto file = iterator.next();
             const auto id = desktopId(appDirectory, file);
-            if (found.contains(id) || (!choices.isEmpty() && !choices.contains(id))) {
+            if (found.contains(id) || (!appIds.isEmpty() && !appIds.contains(id))) {
                 continue;
             }
 
@@ -88,7 +107,7 @@ QVariantList AppChooser::applications(const QStringList &choices)
         }
     }
 
-    for (const auto &choice : choices) {
+    for (const auto &choice : appIds) {
         if (!found.contains(choice)) {
             result.append(QVariantMap{
                 {QStringLiteral("desktopId"), choice},
@@ -112,11 +131,13 @@ void AppChooser::ChooseApplication(const QDBusObjectPath &handle,
                                    const QVariantMap &options,
                                    const QDBusMessage &message)
 {
-    Q_UNUSED(appId)
-    Q_UNUSED(parentWindow)
+    qInfo() << "AppChooser request" << handle.path() << "sender" << message.service()
+            << "appId" << appId << "parent" << parentWindow
+            << "choices" << choices << "options" << options;
     message.setDelayedReply(true);
     const auto path = handle.path();
     if (path.isEmpty() || m_pending.contains(path)) {
+        qWarning() << "AppChooser rejected invalid or duplicate request" << path;
         m_connection.send(message.createErrorReply(
             QStringLiteral("org.freedesktop.portal.Error.Failed"),
             QStringLiteral("Invalid or duplicate request handle")));
@@ -127,6 +148,9 @@ void AppChooser::ChooseApplication(const QDBusObjectPath &handle,
     pending->request = QSharedPointer<PortalRequest>::create(m_connection, path);
     pending->call = message;
     if (!pending->request->registerObject()) {
+        const auto error = m_connection.lastError();
+        qWarning() << "AppChooser could not export request" << path
+                   << error.name() << error.message();
         m_connection.send(message.createErrorReply(
             QStringLiteral("org.freedesktop.portal.Error.Failed"),
             QStringLiteral("Could not export the request object")));
@@ -142,14 +166,17 @@ void AppChooser::ChooseApplication(const QDBusObjectPath &handle,
         {QStringLiteral("subject"), subject},
         {QStringLiteral("modalDialog"), options.value(QStringLiteral("modal"), true).toBool()},
         {QStringLiteral("applications"), applications(choices)},
-        {QStringLiteral("lastChoice"), options.value(QStringLiteral("last_choice")).toString()}};
+        {QStringLiteral("lastChoice"), canonicalAppId(options.value(QStringLiteral("last_choice")).toString())}};
 
+    pending->properties = properties;
     m_pending.insert(path, pending);
 
     connect(pending->request.data(), &PortalRequest::accepted, this,
             [this, path](const QVariant &value) {
                 QTimer::singleShot(0, this, [this, path, value] {
-                    const auto choice = value.toString();
+                    const auto rawChoice = value.toString();
+                    const auto choice = canonicalAppId(rawChoice);
+                    qInfo() << "AppChooser selected" << rawChoice << "canonical ID" << choice;
                     finish(path,
                            choice.isEmpty() ? Cancelled : Success,
                            choice.isEmpty()
@@ -159,45 +186,152 @@ void AppChooser::ChooseApplication(const QDBusObjectPath &handle,
             });
     connect(pending->request.data(), &PortalRequest::cancelled, this,
             [this, path] {
+                qInfo() << "AppChooser UI rejected or closed" << path;
                 QTimer::singleShot(0, this, [this, path] {
                     finish(path, Cancelled, {});
                 });
             });
 
-    QQmlComponent component(&m_engine, QUrl(QStringLiteral("qrc:/nx/qml/src/qml/AppChooserDialog.qml")));
+    m_dialogQueue.append(path);
+    qInfo() << "AppChooser queued" << path << "position" << m_dialogQueue.size()
+            << "active" << m_activeDialogPath;
+    showNextDialog();
+}
+
+void AppChooser::showNextDialog()
+{
+    if (!m_activeDialogPath.isEmpty()) {
+        qInfo() << "AppChooser waiting; active dialog" << m_activeDialogPath
+                << "queued" << m_dialogQueue.size();
+        return;
+    }
+
+    while (!m_dialogQueue.isEmpty()) {
+        const auto path = m_dialogQueue.takeFirst();
+        const auto pending = m_pending.value(path);
+        if (!pending)
+            continue;
+
+        m_activeDialogPath = path;
+        qInfo() << "AppChooser activating" << path
+                << "remaining queued" << m_dialogQueue.size();
+        QTimer::singleShot(0, this, [this, path, pending] {
+            if (m_activeDialogPath == path && m_pending.contains(path))
+                showDialog(path, pending, pending->properties);
+        });
+        return;
+    }
+}
+
+void AppChooser::showDialog(const QString &path,
+                            const QSharedPointer<Pending> &pending,
+                            const QVariantMap &properties,
+                            int attempt)
+{
+    if (!m_pending.contains(path) || m_activeDialogPath != path) {
+        qWarning() << "AppChooser skipped presentation for inactive request"
+                   << path << "attempt" << attempt;
+        return;
+    }
+
+    const auto present = [this, &path, &properties] {
+        for (auto it = properties.cbegin(); it != properties.cend(); ++it) {
+            if (!m_dialog->setProperty(it.key().toUtf8().constData(), it.value()))
+                qWarning() << "AppChooser could not set persistent dialog property"
+                           << it.key() << "for" << path;
+        }
+
+        qInfo() << "AppChooser presenting persistent QML window" << path << m_dialog.data();
+        if (!QMetaObject::invokeMethod(m_dialog, "present")) {
+            finish(path, Failed,
+                   {{QStringLiteral("error"), QStringLiteral("Could not present AppChooser dialog")},
+                    {QStringLiteral("nx_stage"), QStringLiteral("qml-presentation")}});
+        }
+    };
+
+    if (m_dialog) {
+        present();
+        return;
+    }
+
+    qInfo() << "AppChooser creating persistent QML window" << path
+            << "attempt" << attempt;
+    QQmlComponent component(&m_engine,
+                            QUrl(QStringLiteral("qrc:/nx/qml/src/qml/AppChooserDialog.qml")));
     if (component.status() != QQmlComponent::Ready) {
-        m_pending.remove(path);
-        m_connection.send(message.createReply(
-            {Failed, QVariantMap{{QStringLiteral("error"), component.errorString()}}}));
+        qWarning() << "AppChooser QML is not ready" << path << component.errorString();
+        if (attempt < 2) {
+            QTimer::singleShot(100, this, [this, path, pending, properties, attempt] {
+                showDialog(path, pending, properties, attempt + 1);
+            });
+            return;
+        }
+        finish(path, Failed,
+               {{QStringLiteral("error"), component.errorString()},
+                {QStringLiteral("nx_stage"), QStringLiteral("qml-component")}});
         return;
     }
 
     auto created = std::unique_ptr<QObject>(component.createWithInitialProperties(properties));
     if (!created) {
-        m_pending.remove(path);
-        m_connection.send(message.createReply(
-            {Failed, QVariantMap{{QStringLiteral("error"), component.errorString()}}}));
+        qWarning() << "Could not create AppChooser QML" << path << component.errorString();
+        if (attempt < 2) {
+            QTimer::singleShot(100, this, [this, path, pending, properties, attempt] {
+                showDialog(path, pending, properties, attempt + 1);
+            });
+            return;
+        }
+        finish(path, Failed,
+               {{QStringLiteral("error"), component.errorString()},
+                {QStringLiteral("nx_stage"), QStringLiteral("qml-object-creation")}});
         return;
     }
-    created->setParent(pending->request.data());
-    pending->dialog = created.get();
-    created.release();
+
+    QQmlEngine::setObjectOwnership(created.get(), QQmlEngine::CppOwnership);
+    created->setParent(this);
+    m_dialog = created.release();
+    qInfo() << "AppChooser persistent QML window created" << m_dialog.data();
+    present();
 }
 
 void AppChooser::UpdateChoices(const QDBusObjectPath &handle, const QStringList &choices)
 {
-    const auto pending = m_pending.value(handle.path());
-    if (pending && pending->dialog) {
-        pending->dialog->setProperty("applications", applications(choices));
+    const auto path = handle.path();
+    const auto pending = m_pending.value(path);
+    if (!pending) {
+        qWarning() << "AppChooser ignored UpdateChoices for unknown request" << path;
+        return;
     }
+
+    const auto updated = applications(choices);
+    pending->properties.insert(QStringLiteral("applications"), updated);
+    if (m_activeDialogPath == path && m_dialog)
+        m_dialog->setProperty("applications", updated);
 }
 
 void AppChooser::finish(const QString &path, uint response, const QVariantMap &results)
 {
-    const auto pending = m_pending.take(path);
-    if (!pending) {
+    const auto pending = m_pending.value(path);
+    if (!pending)
         return;
-    }
-    m_connection.send(pending->call.createReply({response, results}));
-}
 
+    const bool wasActive = m_activeDialogPath == path;
+    m_dialogQueue.removeAll(path);
+    if (wasActive) {
+        m_activeDialogPath.clear();
+        if (m_dialog && !QMetaObject::invokeMethod(m_dialog, "dismiss"))
+            qWarning() << "AppChooser could not dismiss persistent QML window for" << path;
+    }
+
+    qInfo() << "AppChooser completing" << path << "response" << response
+            << "results" << results;
+    m_pending.remove(path);
+    if (!m_connection.send(pending->call.createReply({response, results}))) {
+        const auto error = m_connection.lastError();
+        qWarning() << "AppChooser could not send reply for" << path
+                   << error.name() << error.message();
+    }
+
+    if (wasActive)
+        QTimer::singleShot(0, this, [this] { showNextDialog(); });
+}

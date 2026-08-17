@@ -2,10 +2,15 @@
 #include "settings.hpp"
 
 #include <QColor>
+#include <QDBusError>
+#include <QDebug>
 #include <QDBusMetaType>
 #include <QDir>
+#include <QEvent>
 #include <QFileInfo>
 #include <QFont>
+#include <QGuiApplication>
+#include <QPalette>
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
@@ -35,6 +40,32 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, PortalSettings &s
         settings.insert(nameSpace, values);
     }
     argument.endMap();
+    return argument;
+}
+
+struct PortalAccentColor
+{
+    double red = 0.0;
+    double green = 0.0;
+    double blue = 0.0;
+
+    bool operator==(const PortalAccentColor &) const = default;
+};
+Q_DECLARE_METATYPE(PortalAccentColor)
+
+QDBusArgument &operator<<(QDBusArgument &argument, const PortalAccentColor &color)
+{
+    argument.beginStructure();
+    argument << color.red << color.green << color.blue;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, PortalAccentColor &color)
+{
+    argument.beginStructure();
+    argument >> color.red >> color.green >> color.blue;
+    argument.endStructure();
     return argument;
 }
 
@@ -106,11 +137,13 @@ QString rgbaOrder(QString value)
 }
 }
 
-Settings::Settings(QObject &parent)
+Settings::Settings(QObject &parent, QDBusContext &context)
     : QDBusAbstractAdaptor(&parent)
+    , m_context(context)
 {
     setAutoRelaySignals(true);
     qDBusRegisterMetaType<PortalSettings>();
+    qDBusRegisterMetaType<PortalAccentColor>();
 
     const auto config = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation);
     m_configFiles = {
@@ -141,16 +174,28 @@ Settings::Settings(QObject &parent)
     connect(&m_reloadTimer, &QTimer::timeout, this, &Settings::reload);
     connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &Settings::scheduleReload);
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, &Settings::scheduleReload);
+    qGuiApp->installEventFilter(this);
     m_values = readHostSettings();
     refreshWatches();
 }
 
+bool Settings::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == qGuiApp && event->type() == QEvent::ApplicationPaletteChange) {
+        scheduleReload(QString{});
+    }
+    return QDBusAbstractAdaptor::eventFilter(watched, event);
+}
+
 QDBusVariant Settings::Read(const QString &nameSpace, const QString &key)
 {
+    qInfo().nospace() << "Settings Read: " << nameSpace << QLatin1Char('.') << key;
     const auto namespaceIt = m_values.constFind(nameSpace);
     if (namespaceIt == m_values.cend() || !namespaceIt->contains(key)) {
-        sendErrorReply(QStringLiteral("org.freedesktop.portal.Error.NotFound"),
-                       QStringLiteral("Unknown setting %1.%2").arg(nameSpace, key));
+        qWarning().nospace() << "Unsupported portal setting: " << nameSpace << QLatin1Char('.') << key;
+        m_context.sendErrorReply(QDBusError::UnknownProperty,
+                                 QStringLiteral("Unknown setting %1.%2")
+                                     .arg(nameSpace, key));
         return {};
     }
     return QDBusVariant(namespaceIt->value(key));
@@ -235,6 +280,8 @@ PortalSettings Settings::readHostSettings() const
     QString fontHinting;
     QString fontRgbaOrder;
     uint colorScheme = 0U;
+    const QColor accent = qGuiApp->palette().highlight().color();
+    const PortalAccentColor accentColor{accent.redF(), accent.greenF(), accent.blueF()};
 
     const QFileInfo kdeFile(m_configFiles.at(0));
     if (kdeFile.isFile()) {
@@ -349,7 +396,8 @@ PortalSettings Settings::readHostSettings() const
 
     return {
         {QString::fromLatin1(Appearance),
-         {{QStringLiteral("color-scheme"), colorScheme}}},
+         {{QStringLiteral("color-scheme"), colorScheme},
+          {QStringLiteral("accent-color"), QVariant::fromValue(accentColor)}}},
         {QString::fromLatin1(GnomeFontconfig),
          {{QStringLiteral("serial"), m_fontconfigSerial}}},
         {QString::fromLatin1(GnomeInterface),

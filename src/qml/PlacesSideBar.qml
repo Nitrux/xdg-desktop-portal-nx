@@ -45,6 +45,10 @@ Maui.ListBrowser
 {
     id: control
 
+    // The parent FileDialog sizes this item through anchors.
+    // Keep implicit height explicit to avoid Maui Pane height recursion.
+    implicitHeight: 0
+
     /**
      * @brief The model list of the places.
      * @property PlacesList PlacesListBrowser::list
@@ -89,6 +93,12 @@ Maui.ListBrowser
         return value === "/" || value === "file:///" || value === "file:/"
     }
 
+    function isDeviceSection(type)
+    {
+        const value = String(type)
+        return isStorageSection(value) || value === i18n("Removable")
+    }
+
     function isStorageSection(type)
     {
         const value = String(type)
@@ -119,8 +129,8 @@ Maui.ListBrowser
         const text = String(label)
         const sectionType = String(type)
 
-        if (isDeviceEntry && isStorageSection(sectionType))
-            return "drive-harddisk"
+        if (isDeviceEntry && isDeviceSection(sectionType))
+            return isExternalDeviceSection(sectionType) ? "drive-removable-media" : "drive-harddisk"
         if (value === "/" || value === "file:///")
             return "folder-red"
         if ((value.startsWith("/") || value.startsWith("file:///")) && text.startsWith("/"))
@@ -137,6 +147,28 @@ Maui.ListBrowser
     function usesSymbolicIcon(path, iconName, label, type, isDeviceEntry)
     {
         return placeIcon(path, iconName, label, type, isDeviceEntry) !== "folder-red"
+    }
+
+    function isExternalDeviceSection(type)
+    {
+        return String(type) === i18n("Removable")
+    }
+
+    function shouldShowPlace(index, type, path)
+    {
+        if (!isStorageSection(type))
+            return true
+
+        const value = String(path)
+        if (isRootPath(value))
+            return true
+
+        return placesList.isDevice(index)
+    }
+
+    function sectionLabel(type)
+    {
+        return isStorageSection(type) ? i18n("Storage") : String(type)
     }
 
     function isPathHidden(path)
@@ -179,7 +211,7 @@ Maui.ListBrowser
     section.delegate: Maui.LabelDelegate
     {
         id: delegate
-        text: section
+        text: control.sectionLabel(section)
         width: parent.width
         height: Maui.Style.toolBarHeightAlt
     }
@@ -207,57 +239,59 @@ Maui.ListBrowser
         }
     }
     
-    flickable.header: GridLayout
+    flickable.header: Loader
     {
-        id: _quickSection
-        
+        id: _quickSectionLoader
+        asynchronous: true
         width: Math.min(parent.width, 180)
-        rows: 3
-        columns: 3
-        columnSpacing: Maui.Style.space.small
-        rowSpacing: Maui.Style.space.small
-        
-        Repeater
+        sourceComponent: GridLayout
         {
-            model: Maui.BaseModel
-            {
-                list: FB.PlacesList
-                {
-                    id: _quickPacesList
-                    groups: [FB.FMList.QUICK_PATH, FB.FMList.PLACES_PATH]
-                }
-            }
-            
-            delegate: Maui.GridBrowserDelegate
-            {
-                Maui.Theme.colorSet: Maui.Theme.Button
-                Maui.Theme.inherit: false
+            id: _quickSection
 
-                readonly property bool hiddenPlace: control.isPathHidden(model.path)
-                Layout.preferredHeight: hiddenPlace ? 0 : Math.min(50, width)
-                Layout.preferredWidth: hiddenPlace ? 0 : 50
-                Layout.fillWidth: !hiddenPlace
-                Layout.fillHeight: !hiddenPlace
-                flat: false
-                visible: !hiddenPlace
-                isCurrentItem: control.currentPath === model.path
-                iconSource: control.sidebarIcon(model.path, model.icon, model.label, model.type, false)
-                iconSizeHint: Maui.Style.iconSize
-                template.isMask: true
-                label1.text: model.label
-                labelsVisible: false
-                tooltipText: model.label
-                onClicked:
+            rows: 3
+            columns: 3
+            columnSpacing: Maui.Style.space.small
+            rowSpacing: Maui.Style.space.small
+
+            Repeater
+            {
+                model: Maui.BaseModel
                 {
-                    placeClicked(model.path)
+                    list: FB.PlacesList
+                    {
+                        id: _quickPlacesList
+                        groups: [FB.FMList.QUICK_PATH, FB.FMList.PLACES_PATH]
+                    }
+                }
+
+                delegate: Maui.GridBrowserDelegate
+                {
+                    Maui.Theme.colorSet: Maui.Theme.Button
+                    Maui.Theme.inherit: false
+
+                    readonly property bool hiddenPlace: control.isPathHidden(model.path)
+                    Layout.preferredHeight: hiddenPlace ? 0 : Math.min(50, width)
+                    Layout.preferredWidth: hiddenPlace ? 0 : 50
+                    Layout.fillWidth: !hiddenPlace
+                    Layout.fillHeight: !hiddenPlace
+                    flat: false
+                    visible: !hiddenPlace
+                    isCurrentItem: control.currentPath === model.path
+                    iconSource: control.sidebarIcon(model.path, model.icon, model.label, model.type, false)
+                    iconSizeHint: Maui.Style.iconSize
+                    template.isMask: true
+                    label1.text: model.label
+                    labelsVisible: false
+                    tooltipText: model.label
+                    onClicked: placeClicked(model.path)
                 }
             }
-        }        
+        }
     }
-    
+
     delegate: Maui.ListDelegate
     {
-        readonly property bool hiddenPlace: control.isPathHidden(model.path)
+        readonly property bool hiddenPlace: control.isPathHidden(model.path) || !control.shouldShowPlace(index, model.type, model.path)
         width: ListView.view.width
         height: hiddenPlace ? 0 : implicitHeight
         iconSize: control.iconSize
@@ -270,7 +304,7 @@ Maui.ListBrowser
         
         template.content: ToolButton
         {
-            visible: placesList.isDevice(index)
+            visible: placesList.isDevice(index) && control.isExternalDeviceSection(model.type)
             flat: true
             icon.name: placesList.setupNeeded(index) ? "media-mount" : "media-eject"
             icon.width: Maui.Style.iconSizes.small

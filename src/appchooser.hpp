@@ -6,6 +6,7 @@
 #include <QDBusMessage>
 #include <QDBusObjectPath>
 #include <QHash>
+#include <QPointer>
 #include <QSharedPointer>
 #include <QStringList>
 #include <QVariantList>
@@ -52,10 +53,18 @@ public slots:
 private:
     struct Pending;
     [[nodiscard]] static QVariantList applications(const QStringList &choices);
+    void showNextDialog();
+    void showDialog(const QString &path,
+                    const QSharedPointer<Pending> &pending,
+                    const QVariantMap &properties,
+                    int attempt = 0);
     void finish(const QString &path, uint response, const QVariantMap &results);
 
     QQmlEngine &m_engine;
     QDBusConnection m_connection;
     QHash<QString, QSharedPointer<Pending>> m_pending;
+    QPointer<QObject> m_dialog;
+    QStringList m_dialogQueue;
+    QString m_activeDialogPath;
 };
 
