@@ -19,6 +19,18 @@ Maui.ApplicationWindow {
     property string acceptLabel: ""
     property bool completed: false
 
+    function localPath(path) {
+        const value = String(path || "")
+        if (!value.startsWith("file:///"))
+            return value
+
+        try {
+            return decodeURIComponent(value.substring(7))
+        } catch (error) {
+            return value.substring(7)
+        }
+    }
+
     title: dialogTitle
     width: 760
     height: 560
@@ -58,9 +70,10 @@ Maui.ApplicationWindow {
         sidebarComponent: PlacesSideBar
         {
             anchors.fill: parent
-            hiddenPaths: chooser.hiddenSidebarPaths.filter(path => String(path) !== "file:///")
+            hiddenPaths: chooser.hiddenSidebarPaths
+                .filter(path => String(path) !== "file:///")
             currentPath: chooser.browser.currentPath
-            onPlaceClicked: (path) => chooser.browser.openFolder(path)
+            onPlaceClicked: (path) => chooser.browser.openFolder(root.localPath(path))
         }
 
         onFinished: (urls) => {
@@ -69,6 +82,7 @@ Maui.ApplicationWindow {
                 root.bridge.accept(urls)
         }
         onClosed: {
+            chooser.browser.cancelSearch()
             if (!root.completed) {
                 root.completed = true
                 if (root.bridge)
@@ -101,7 +115,7 @@ Maui.ApplicationWindow {
 
     function present() {
         root.completed = false
-        chooser.currentPath = root.initialFolder
+        chooser.currentPath = root.localPath(root.initialFolder)
         chooser.browser.currentFMList.onlyDirs = root.directoryMode
         chooser.browser.currentFMList.filters = root.nameFilters
         chooser.textField.text = root.suggestedName
