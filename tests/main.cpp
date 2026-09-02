@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
+// Copyright 2026 Nitrux Latinoamericana S.C. <hello@nxos.org>
+
 #include <MauiKit4/Core/mauiapp.h>
 
 #include <KLocalizedString>
