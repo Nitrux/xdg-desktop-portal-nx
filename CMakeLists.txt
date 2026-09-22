@@ -111,7 +111,7 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MauiKit XDG Desktop Portal backend for Ni
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "uri_herrera@nxos.org")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "xdg-desktop-portal, xdg-desktop-portal-hyprland (>= 1.3.12), mauikit (>= 4.0.4), mauikit-filebrowsing (>= 4.0.4), qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qt6-wayland")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "xdg-desktop-portal, xdg-desktop-portal-hyprland, mauikit (>= 4.0.4), mauikit-filebrowsing (>= 4.0.4), qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qt6-wayland")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" @ONLY)
