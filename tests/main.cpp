@@ -199,7 +199,6 @@ private:
     quint64 m_requestSerial{0};
 };
 
-#include "main.moc"
 
 int main(int argc, char **argv)
 {
@@ -224,3 +223,5 @@ int main(int argc, char **argv)
     engine.load(QUrl(QStringLiteral("qrc:/nx/test/tests/TestWindow.qml")));
     return engine.rootObjects().isEmpty() ? 1 : app.exec();
 }
+
+#include "main.moc"

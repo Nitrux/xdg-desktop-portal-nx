@@ -21,7 +21,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 
-#include <KLocalizedContext>
+#include <KLocalizedQmlContext>
 #include <KLocalizedString>
 
 namespace
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
                      });
 
     QQmlEngine engine;
-    engine.rootContext()->setContextObject(new KLocalizedContext(&engine));
+    engine.rootContext()->setContextObject(new KLocalizedQmlContext(&engine));
     PortalObject portalObject;
 
     FileChooser fileChooser(portalObject, engine, connection);

@@ -22,8 +22,8 @@ option(NX_PORTAL_ENABLE_DEBUG_OUTPUT
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus Gui Qml Quick)
 find_package(KF6CoreAddons REQUIRED)
 find_package(KF6I18n REQUIRED)
-find_package(MauiKit4 4.0 REQUIRED)
-find_package(MauiKitFileBrowsing4 4.0 REQUIRED)
+find_package(MauiKit4 4.0.5 REQUIRED)
+find_package(MauiKitFileBrowsing4 4.0.5 REQUIRED)
 
 add_executable(xdg-desktop-portal-nx
     src/main.cpp
@@ -53,6 +53,7 @@ target_link_libraries(xdg-desktop-portal-nx
         Qt6::Qml
         Qt6::Quick
         KF6::I18n
+        KF6::I18nQml
         MauiKit4
         MauiKit4::FileBrowsing)
 
@@ -102,21 +103,3 @@ install(FILES data/org.freedesktop.impl.portal.desktop.nx.service
     DESTINATION "${CMAKE_INSTALL_DATADIR}/dbus-1/services")
 install(FILES data/portals.conf
     DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/xdg-desktop-portal")
-
-set(CPACK_PACKAGE_NAME "xdg-desktop-portal-nx")
-set(CPACK_DEBIAN_PACKAGE_NAME "xdg-desktop-portal-nx")
-set(CPACK_PACKAGE_VENDOR "Nitrux Latinoamericana S.C.")
-set(CPACK_PACKAGE_CONTACT "hello@nxos.org")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MauiKit XDG Desktop Portal backend for Nitrux")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "uri_herrera@nxos.org")
-set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
-set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "xdg-desktop-portal, xdg-desktop-portal-hyprland, mauikit (>= 4.0.4), mauikit-filebrowsing (>= 4.0.4), qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qt6-wayland")
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake" @ONLY)
-
-add_custom_target(uninstall COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
-
-
-include(CPack)

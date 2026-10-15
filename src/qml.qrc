@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/nx/qml">
+        <file>qml/FileChooserDialog.qml</file>
+        <file>qml/PlacesSideBar.qml</file>
+        <file>qml/AppChooserDialog.qml</file>
+    </qresource>
+</RCC>

@@ -93,4 +93,3 @@ void PortalRequest::close()
 }
 
 #include "portalrequest.moc"
-

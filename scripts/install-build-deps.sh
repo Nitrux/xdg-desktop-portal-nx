@@ -23,17 +23,17 @@ fi
 $APT_COMMAND update -q
 $APT_COMMAND install -y --no-install-recommends \
     build-essential \
-    cmake \
+    meson \
+    ninja-build \
+    pkg-config \
     curl \
     git \
     libkf6coreaddons-dev \
     libkf6i18n-dev \
     liblayershellqtinterface-dev \
     libwayland-dev \
-    meson \
-    ninja-build \
-    pkg-config \
     qt6-base-dev \
+    qt6-base-dev-tools \
     qt6-declarative-dev \
     qt6-declarative-dev-tools
 

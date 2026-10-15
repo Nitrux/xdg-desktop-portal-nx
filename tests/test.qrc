@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/nx/test">
+        <file>TestWindow.qml</file>
+    </qresource>
+</RCC>
