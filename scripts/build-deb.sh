@@ -30,7 +30,7 @@ Priority: optional
 Architecture: ${TARGET_ARCH}
 Maintainer: uri_herrera@nxos.org
 Provides: xdg-desktop-portal-nx
-Depends: xdg-desktop-portal,xdg-desktop-portal-hyprland,mauikit (>= 4.0.5),mauikit-filebrowsing (>= 4.0.5),qml6-module-qtquick-controls,qml6-module-qtquick-layouts,qt6-wayland
+Depends: xdg-desktop-portal,xdg-desktop-portal-hyprland,mauikit (>= 4.0.5),mauikit-filebrowsing (>= 4.0.5),qml6-module-qtquick,qml6-module-qtquick-controls,qml6-module-qtquick-layouts,qt6-wayland
 Description: Nitrux XDG desktop portal.
  Nitrux XDG desktop portal.
 CONTROL
