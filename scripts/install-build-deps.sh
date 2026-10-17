@@ -28,8 +28,11 @@ $APT_COMMAND install -y --no-install-recommends \
     pkg-config \
     curl \
     git \
+    libkf6config-dev \
     libkf6coreaddons-dev \
     libkf6i18n-dev \
+    libkf6notifications-dev \
+    libkf6windowsystem-dev \
     liblayershellqtinterface-dev \
     libxkbcommon-dev \
     libwayland-dev \
