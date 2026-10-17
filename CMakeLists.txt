@@ -16,8 +16,14 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+find_package(ECM 6.13 REQUIRED NO_MODULE)
+set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${CMAKE_MODULE_PATH})
+
 option(NX_PORTAL_ENABLE_DEBUG_OUTPUT
     "Build the portal backend with debug and informational logging" OFF)
+
+set(QT_NO_PRIVATE_MODULE_WARNING ON CACHE BOOL
+    "MauiKit uses Qt's private WaylandClient API" FORCE)
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus Gui Qml Quick)
 find_package(KF6CoreAddons REQUIRED)
@@ -103,3 +109,14 @@ install(FILES data/org.freedesktop.impl.portal.desktop.nx.service
     DESTINATION "${CMAKE_INSTALL_DATADIR}/dbus-1/services")
 install(FILES data/portals.conf
     DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/xdg-desktop-portal")
+
+if(NOT TARGET uninstall)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+        IMMEDIATE
+        @ONLY)
+
+    add_custom_target(uninstall
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+endif()

@@ -6,7 +6,7 @@
 
 # -- Exit on errors.
 
-set -e
+set -euo pipefail
 
 
 # -- Check if running as root.
@@ -23,8 +23,8 @@ fi
 $APT_COMMAND update -q
 $APT_COMMAND install -y --no-install-recommends \
     build-essential \
-    meson \
-    ninja-build \
+    cmake \
+    extra-cmake-modules \
     pkg-config \
     curl \
     git \
