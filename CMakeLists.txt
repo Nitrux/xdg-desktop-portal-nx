@@ -120,3 +120,19 @@ if(NOT TARGET uninstall)
     add_custom_target(uninstall
         COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
 endif()
+
+target_precompile_headers(xdg-desktop-portal-nx PRIVATE
+    <QDebug>
+    <QFileInfo>
+    <QGuiApplication>
+    <QQmlEngine>
+    <QQuickWindow>
+)
+
+target_precompile_headers(xdg-desktop-portal-nx-test PRIVATE
+    <QDebug>
+    <QFileInfo>
+    <QGuiApplication>
+    <QQmlEngine>
+    <QQuickWindow>
+)
