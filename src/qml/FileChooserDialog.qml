@@ -71,6 +71,7 @@ Maui.ApplicationWindow {
         {
             anchors.fill: parent
             hiddenPaths: chooser.hiddenSidebarPaths
+            mountRemovableOnClick: true
             currentPath: chooser.browser.currentPath
             onPlaceClicked: (path) => chooser.browser.openFolder(root.localPath(path))
         }
