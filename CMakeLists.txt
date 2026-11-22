@@ -7,6 +7,10 @@ project(xdg-desktop-portal-nx
     DESCRIPTION "Nitrux XDG Desktop Portal backend"
     LANGUAGES CXX)
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
+endif()
+
 include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -101,11 +105,16 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
         -march=x86-64-v3 -mtune=generic)
 endif()
 
+configure_file(
+    data/org.freedesktop.impl.portal.desktop.nx.service
+    "${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.impl.portal.desktop.nx.service"
+    @ONLY)
+
 install(TARGETS xdg-desktop-portal-nx
     RUNTIME DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}")
 install(FILES data/nx.portal
     DESTINATION "${CMAKE_INSTALL_DATADIR}/xdg-desktop-portal/portals")
-install(FILES data/org.freedesktop.impl.portal.desktop.nx.service
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.impl.portal.desktop.nx.service"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/dbus-1/services")
 install(FILES data/portals.conf
     DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/xdg-desktop-portal")
