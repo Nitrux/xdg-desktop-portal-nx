@@ -3,6 +3,7 @@
 
 #include "appchooser.hpp"
 #include "filechooser.hpp"
+#include "inhibit.hpp"
 #include "openuri.hpp"
 #include "settings.hpp"
 
@@ -99,6 +100,7 @@ int main(int argc, char *argv[])
     FileChooser fileChooser(portalObject, engine, connection);
     AppChooser appChooser(portalObject, engine, connection);
     OpenUri openUri(portalObject, connection);
+    InhibitAdaptor inhibit(portalObject, connection);
     Settings settings(portalObject, portalObject);
 
     if (!connection.registerObject(QString::fromLatin1(ObjectPath),

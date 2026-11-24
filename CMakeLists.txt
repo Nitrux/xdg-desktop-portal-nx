@@ -13,6 +13,12 @@ endif()
 
 include(GNUInstallDirs)
 
+if(CMAKE_INSTALL_PREFIX STREQUAL "/usr"
+    AND CMAKE_INSTALL_SYSCONFDIR STREQUAL "etc")
+    set(CMAKE_INSTALL_SYSCONFDIR "/etc" CACHE PATH
+        "System configuration directory" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -45,6 +51,8 @@ add_executable(xdg-desktop-portal-nx
     src/appchooser.hpp
     src/openuri.cpp
     src/openuri.hpp
+    src/inhibit.cpp
+    src/inhibit.hpp
     src/settings.cpp
     src/settings.hpp)
 
