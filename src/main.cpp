@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     QGuiApplication application(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("xdg-desktop-portal-nx"));
     QCoreApplication::setOrganizationName(QStringLiteral("Nitrux"));
-    QCoreApplication::setApplicationVersion(QStringLiteral("1.0.0"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("0.0.2"));
     KLocalizedString::setApplicationDomain("xdg-desktop-portal-nx");
     application.setQuitOnLastWindowClosed(false);
 

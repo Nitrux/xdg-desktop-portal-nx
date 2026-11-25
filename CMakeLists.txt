@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(xdg-desktop-portal-nx
-    VERSION 1.0.0
+    VERSION 0.0.2
     DESCRIPTION "Nitrux XDG Desktop Portal backend"
     LANGUAGES CXX)
 
